@@ -8,13 +8,14 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 transformers = "^4.51.3"
-
-
 torch = {version = "^2.7.0+cpu", source = "pytorch-cpu"}
 torchvision = {version = "^0.22.0+cpu", source = "pytorch-cpu"}
 torchaudio = {version = "^2.7.0+cpu", source = "pytorch-cpu"}
 fastapi = "^0.115.12"
 uvicorn = "^0.34.2"
+
+
+httpx = "^0.28.1"
 [tool.poetry.group.dev.dependencies]
 blue = "^0.9.1"
 
