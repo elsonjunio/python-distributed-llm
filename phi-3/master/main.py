@@ -41,7 +41,9 @@ def main():
             continue
 
         # Decodifica
-        output_text = tokenizer.decode(output_ids, skip_special_tokens=True)
+        #output_text = tokenizer.decode(output_ids, skip_special_tokens=True)
+        flat_output_ids = output_ids[0] if isinstance(output_ids[0], list) else output_ids
+        output_text = tokenizer.decode(flat_output_ids, skip_special_tokens=True)
 
         # Mostra resultado
         print(f"Resposta do modelo: {output_text}")
