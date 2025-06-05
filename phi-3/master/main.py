@@ -1,51 +1,48 @@
+# master/main.py
 import requests
 from transformers import AutoTokenizer
 
-# Configura URLs dos Workers
 WORKER1_URL = "http://127.0.0.1:8001/forward"
 WORKER2_URL = "http://127.0.0.1:8002/forward"
 
-# Carrega tokenizer - ajuste para o modelo Phi3 correspondente
 tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-4k-instruct")
 
 def main():
     while True:
-        # Recebe o prompt
         prompt = input("Digite o prompt (ou 'sair' para encerrar): ")
         if prompt.lower() == 'sair':
             break
 
-        # Tokeniza
-        input_ids = tokenizer.encode(prompt, return_tensors='pt').tolist()[0]
+        input_ids = tokenizer.encode(prompt)
 
-        # Envia para Worker1
-        response1 = requests.post(WORKER1_URL, json={"input": input_ids})
-        if response1.status_code != 200:
-            print(f"Erro no Worker1: {response1.status_code} {response1.text}")
-            continue
+        MAX_TOKENS = 50
+        for _ in range(MAX_TOKENS):
+            # Envia para Worker1
+            response1 = requests.post(WORKER1_URL, json={"input": input_ids})
+            if response1.status_code != 200:
+                print(f"Erro Worker1: {response1.status_code} {response1.text}")
+                break
 
-        intermediate_output = response1.json().get("intermediate_output")
-        if intermediate_output is None:
-            print("Resposta inválida do Worker1")
-            continue
+            intermediate_output = response1.json().get("intermediate_output")
 
-        # Envia para Worker2
-        response2 = requests.post(WORKER2_URL, json={"intermediate_output": intermediate_output})
-        if response2.status_code != 200:
-            print(f"Erro no Worker2: {response2.status_code} {response2.text}")
-            continue
+            # Envia para Worker2
+            response2 = requests.post(WORKER2_URL, json={"intermediate_output": intermediate_output})
+            if response2.status_code != 200:
+                print(f"Erro Worker2: {response2.status_code} {response2.text}")
+                break
 
-        output_ids = response2.json().get("output_ids")
-        if output_ids is None:
-            print("Resposta inválida do Worker2")
-            continue
+            next_token_id = response2.json().get("next_token_id")
+            if next_token_id is None:
+                print("Resposta inválida do Worker2")
+                break
 
-        # Decodifica
-        #output_text = tokenizer.decode(output_ids, skip_special_tokens=True)
-        flat_output_ids = output_ids[0] if isinstance(output_ids[0], list) else output_ids
-        output_text = tokenizer.decode(flat_output_ids, skip_special_tokens=True)
+            input_ids.append(next_token_id)
 
-        # Mostra resultado
+            # Parar se for token de parada
+            if next_token_id == tokenizer.eos_token_id:
+                break
+
+        output_text = tokenizer.decode(input_ids, skip_special_tokens=True)
         print(f"Resposta do modelo: {output_text}")
 
 if __name__ == "__main__":

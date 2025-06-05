@@ -16,6 +16,8 @@ uvicorn = "^0.34.2"
 
 
 httpx = "^0.28.1"
+safetensors = "^0.5.3"
+ipykernel = "^6.29.5"
 [tool.poetry.group.dev.dependencies]
 blue = "^0.9.1"
 

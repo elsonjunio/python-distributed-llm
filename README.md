@@ -84,3 +84,6 @@ cd master && python main.py
 ```
 
 criado dia 2025-05-05
+
+##
+Implementação com safetensors exige a criação de todas as etapas do Transformer (attention, MLP, residuals, etc) (Pausado para estudos).

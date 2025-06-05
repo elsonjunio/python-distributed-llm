@@ -172,3 +172,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+phi3_safetensors
+Phi-3-mini-4k-instruct
