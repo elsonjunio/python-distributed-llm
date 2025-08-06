@@ -1,89 +1,113 @@
 # python-distributed-llm
 
-A ideia de criar um sistema distribuído para execução de modelos LLM (como LLaMA ou Phi-3) dividido entre máquinas com poucos recursos, com um gerenciador coordenando os workers, tem várias vantagens importantes, tanto técnicas quanto estratégicas.
+Python Distributed LLM
+📌 Visão Geral
 
-✅ Vantagens principais
+Este projeto é um estudo sobre execução distribuída de modelos de linguagem usando Python e PyTorch, com foco em rodar modelos grandes em máquinas com pouca memória RAM.
 
-🧩 1. Aproveitamento de hardware modesto
+A ideia principal é dividir as camadas do modelo em múltiplos workers, que podem estar em processos ou máquinas diferentes, e processar sequencialmente as partes do modelo via rede (TCP/IP).
 
-    Máquinas fracas isoladas não conseguem rodar o modelo inteiro, mas cooperando podem executar partes.
+Foram realizados testes bem-sucedidos com os modelos:
 
-    Reduz a dependência de uma única máquina potente (com muita RAM e CPU/GPU).
+   - microsoft/Phi-3-mini-instruct
 
-💰 2. Custo reduzido
+   - microsoft/Phi-3.5-mini-instruct
 
-    Evita comprar hardware caro.
+---
 
-    Você pode usar mini-PCs, Raspberry Pi, Orange Pi, VPSs baratos, PCs antigos, etc.
+🏗 Arquitetura
 
-    Usa o que já tem — ótima ideia para home labs ou ambientes educacionais.
+O projeto segue um modelo Manager → Workers:
 
-🧠 3. Entendimento profundo de como um LLM funciona
+#### Manager (Master)
 
-    Obriga a entender o pipeline interno de inferência, camadas, tensores, e otimizações.
+- Recebe o *prompt* de entrada.
 
-    Excelente aprendizado para quem quer trabalhar com sistemas distribuídos e LLMs.
+- Tokeniza usando `AutoTokenizer`.
 
-🚀 4. Escalabilidade horizontal
+- Orquestra a execução chamando cada worker na sequência correta.
 
-    Quando quiser mais performance, adicione mais nós ao cluster.
+- Não carrega nenhuma camada do modelo na memória (somente embeddings, config e tokenizer).
 
-    Pode fazer sharding mais fino (mais camadas por nó) ou balancear carga por token, etc.
+#### Workers
 
-🔄 5. Flexibilidade arquitetural
+- Cada worker carrega **apenas um subconjunto das camadas** do modelo.
 
-    Pode:
+- Executam o *forward* local das camadas que possuem.
 
-        Substituir partes do modelo,
+- Retornam os *hidden states* processados para o próximo worker via rede.
 
-        Trocar o backend (PyTorch, GGUF, etc.),
+📡 Comunicação
 
-        Integrar cache, prefetch, compressão de tensores, etc.
+   - A comunicação é feita via **sockets TCP/IP**.
 
-🧪 6. Testbed para inovação
+   - Serialização usando `pickle`.
 
-    Este MVP vira uma base para:
+   - O protocolo inclui prefixo de tamanho (4 bytes) para controle do fluxo de dados.
 
-        Explorar novos protocolos (ZeroMQ, gRPC),
+---
 
-        Testar compressão de dados em tempo real,
+🎯 Motivação
 
-        Rodar modelos heterogêneos (parte no CPU, parte em GPU),
+Modelos de linguagem grandes normalmente precisam de **vários GB de RAM** para rodar.
+Este projeto demonstra que é possível distribuir a execução em múltiplos nós modestos (como **Orange Pi 4GB**), processando partes do modelo de forma sequencial.
 
-        Usar quantização sob demanda (ex: ativação em int8, atenção em fp32).
+Isso permite:
 
-🧰 7. Controle total
+   - Usar hardware barato para estudar modelos grandes.
 
-    Diferente de frameworks fechados (como DeepSpeed, vLLM), você controla cada etapa.
-
-    Pode customizar tudo: agendamento, balanceamento, cache de atenção, etc.
-
-📡 8. Independência de cloud / open-source por completo
-
-    Pode funcionar offline ou em redes internas (LAN).
-
-    Ideal para aplicações sensíveis (privacidade, edge computing, defesa, indústria).
-
-🛠️ Use cases viáveis
-
-    Chatbots embarcados, com o modelo rodando parcialmente em cada nó.
-
-    Clusters de edge computing, onde cada nó é simples (IoT, SBCs).
-
-    Pesquisas sobre inferência distribuída.
-
-    Educação em sistemas paralelos e IA.
+   - Executar localmente modelos que não caberiam em um único dispositivo.
 
 
-Teste de execução de inferência de modo distribuido
+📂 Estrutura do Projeto
 
 ```bash
-cd worker1 && uvicorn main:app --host 0.0.0.0 --port 8001
-cd worker2 && uvicorn main:app --host 0.0.0.0 --port 8002
-cd master && python main.py
+src/
+├── gpt2/                     # Versão experimental para GPT-2
+│   ├── master/                # Scripts do manager
+│   ├── worker1/               # Scripts do primeiro worker
+│   └── worker2/               # Scripts do segundo worker
+├── phi3/                      # Versão para modelos Phi-3 / Phi-3.5
+│   ├── manager.py             # Manager (master)
+│   ├── partial_forward_client.py
+│   ├── partial_forward_server.py
+│   ├── phi3_partial/          # Implementação de forward parcial no modelo
+│   ├── worker_1.py            # Primeiro worker
+│   ├── worker_2.py            # Segundo worker
+│   └── test/                  # Testes e exemplos
 ```
 
-criado dia 2025-05-05
+🚀 Como Executar
 
-##
-Implementação com safetensors exige a criação de todas as etapas do Transformer (attention, MLP, residuals, etc) (Pausado para estudos).
+1️⃣ **Instalar dependências**
+```bash
+poetry install
+```
+
+2️⃣ **Iniciar os Workers**
+
+Em terminais separados, rode:
+```bash
+poetry run python src/phi3/worker_1.py
+poetry run python src/phi3/worker_2.py
+```
+
+3️⃣ **Iniciar o Manager**
+```bash
+poetry run python src/phi3/manager.py
+```
+
+🔧 **Configuração**
+
+Modelo: definido em `MODEL_PATH` no código.
+
+Workers: definidos na lista `WORKERS` no `manager.py`.
+
+Portas: ajustadas diretamente nos scripts dos workers.
+
+Divisão de camadas: controlada via parâmetros `handle_section_index` e `total_sections` no carregamento `from_pretrained_partial`.
+
+📜 **Licença**
+
+Este projeto é apenas para estudo e uso pessoal.
+Licença: MIT
