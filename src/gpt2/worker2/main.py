@@ -30,7 +30,7 @@ partial_layers = torch.nn.Sequential(*wrapped_layers)
 
 
 # Selecionar apenas as camadas 6–11
-#partial_layers = torch.nn.Sequential(*full_model.h[6:])
+# partial_layers = torch.nn.Sequential(*full_model.h[6:])
 
 # Normalização final do GPT2
 ln_f = full_model.ln_f

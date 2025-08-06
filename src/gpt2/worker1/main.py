@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request
 import torch
 from transformers import GPT2Model
-#from transformers.models.gpt2.modeling_gpt2 import GPT2Block
+
+# from transformers.models.gpt2.modeling_gpt2 import GPT2Block
 import uvicorn
 import base64
 import io
@@ -9,7 +10,7 @@ import io
 app = FastAPI()
 
 # Wrapper para extrair apenas hidden_states
-#class GPT2BlockWrapper(torch.nn.Module):
+# class GPT2BlockWrapper(torch.nn.Module):
 #    def __init__(self, block: GPT2Block):
 #        super().__init__()
 #        self.block = block
