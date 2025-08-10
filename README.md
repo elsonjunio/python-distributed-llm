@@ -106,8 +106,3 @@ Workers: definidos na lista `WORKERS` no `manager.py`.
 Portas: ajustadas diretamente nos scripts dos workers.
 
 Divisão de camadas: controlada via parâmetros `handle_section_index` e `total_sections` no carregamento `from_pretrained_partial`.
-
-📜 **Licença**
-
-Este projeto é apenas para estudo e uso pessoal.
-Licença: MIT
